@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 import {View, SafeAreaView, StyleSheet, TouchableOpacity} from 'react-native';
-import {Button, Card, Avatar} from 'react-native-paper';
+import {Button, Card, Avatar, Searchbar} from 'react-native-paper';
 import {openDatabase} from 'react-native-sqlite-storage';
 import DbHelper from '../DbHelper';
 import UpdateBookDialog from '../components/dialogs/UpdateBookDialog';
@@ -14,6 +14,8 @@ const ViewAllBooks = ({navigation}) => {
   const [allBooks, setAllBooks] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [bookForEdit, setBookForEdit] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredBooks, setFilteredBooks] = useState([]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -22,6 +24,15 @@ const ViewAllBooks = ({navigation}) => {
     }, []),
   );
 
+  const onChangeSearch = e => {
+    setSearchQuery(e);
+    setFilteredBooks(
+      allBooks.filter(book => {
+        return book.book_title.toLowerCase().indexOf(e.toLowerCase()) > -1;
+      }),
+    );
+  };
+
   const getAllBooks = () => {
     db.transaction(tx => {
       tx.executeSql('SELECT * FROM table_book', [], (tx, results) => {
@@ -29,11 +40,12 @@ const ViewAllBooks = ({navigation}) => {
         for (let i = 0; i < results.rows.length; ++i)
           temp.push(results.rows.item(i));
         setAllBooks(temp);
+        setFilteredBooks(temp);
       });
     });
   };
 
-  const bookCards = allBooks.map(book => (
+  const bookCards = filteredBooks.map(book => (
     <Card style={styles.bookCard} key={book.book_id}>
       <Card.Title
         title={book.book_title}
@@ -83,6 +95,11 @@ const ViewAllBooks = ({navigation}) => {
             icon="plus"
           />
         </TouchableOpacity>
+        <Searchbar
+          placeholder="Search"
+          onChangeText={onChangeSearch}
+          value={searchQuery}
+        />
         <ScrollView contentContainerStyle={styles.scrollView}>
           {bookCards}
         </ScrollView>

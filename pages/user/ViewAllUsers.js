@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 import {SafeAreaView, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
-import {Button, Card, Avatar} from 'react-native-paper';
+import {Button, Card, Avatar, Searchbar} from 'react-native-paper';
 import {COLORS} from '../components/ui/constants';
 import UpdateUserDialog from '../components/dialogs/UpdateUserDialog';
 import {openDatabase} from 'react-native-sqlite-storage';
@@ -14,12 +14,25 @@ const ViewAllUsers = ({navigation}) => {
   const [allUsers, setAllUsers] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [userForEdit, setUserForEdit] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
   useFocusEffect(
     React.useCallback(() => {
       getAllUsers();
       return () => {};
     }, []),
   );
+
+  const onChangeSearch = e => {
+    setSearchQuery(e);
+    setFilteredUsers(
+      allUsers.filter(user => {
+        return user.user_name.toLowerCase().indexOf(e.toLowerCase()) > -1;
+      }),
+    );
+  };
+
   const getAllUsers = () => {
     db.transaction(tx => {
       tx.executeSql('SELECT * FROM table_user', [], (tx, results) => {
@@ -27,11 +40,12 @@ const ViewAllUsers = ({navigation}) => {
         for (let i = 0; i < results.rows.length; ++i)
           temp.push(results.rows.item(i));
         setAllUsers(temp);
+        setFilteredUsers(temp);
       });
     });
   };
 
-  const usersCards = allUsers.map(user => (
+  const usersCards = filteredUsers.map(user => (
     <Card style={styles.usersCard} key={user.user_id}>
       <Card.Title
         title={user.user_name}
@@ -85,6 +99,11 @@ const ViewAllUsers = ({navigation}) => {
           icon="plus"
         />
       </TouchableOpacity>
+      <Searchbar
+        placeholder="Search"
+        onChangeText={onChangeSearch}
+        value={searchQuery}
+      />
       <ScrollView contentContainerStyle={styles.scrollView}>
         {usersCards}
       </ScrollView>
@@ -107,9 +126,9 @@ const styles = StyleSheet.create({
     paddingLeft: '5%',
     paddingRight: '5%',
   },
-  background:{
+  background: {
     backgroundColor: COLORS.mainBackground,
-    height: '100%'
+    height: '100%',
   },
   usersCard: {
     width: '47.5%',
